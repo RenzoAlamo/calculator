@@ -1,40 +1,4 @@
-import styles from "./App.module.css";
 import "./App.css";
-
-// const App = () => {
-// 	return (
-// 		<div className={styles.calculator}>
-// 			<div className={styles.display}>Content</div>
-// 			<div className={styles.buttons}>
-// 				<button>%</button>
-// 				<button>^</button>
-// 				<button>9</button>
-// 				<button>x</button>
-// 				<button
-// 					style={{
-// 						height: "50%",
-// 					}}>
-// 					7
-// 				</button>
-// 				<button>8</button>
-// 				<button>9</button>
-// 				<button>x</button>
-// 				<button>4</button>
-// 				<button>5</button>
-// 				<button>6</button>
-// 				<button>-</button>
-// 				<button>1</button>
-// 				<button>2</button>
-// 				<button>3</button>
-// 				<button>+</button>
-// 				<button>_</button>
-// 				<button>.</button>
-// 				<button>_</button>
-// 				<button>=</button>
-// 			</div>
-// 		</div>
-// 	);
-// };
 
 const buttons: { name: string; value: number | string }[] = [
 	{ name: "7", value: 7 },
@@ -66,7 +30,6 @@ const App = () => (
 					</button>
 				))}
 			</div>
-			{/* <section className=""></section> */}
 		</div>
 	</>
 );

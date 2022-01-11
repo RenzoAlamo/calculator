@@ -36,7 +36,7 @@ import "./App.css";
 // 	);
 // };
 
-const buttons = [
+const buttons: { name: string; value: number | string }[] = [
 	{ name: "7", value: 7 },
 	{ name: "8", value: 8 },
 	{ name: "9", value: 9 },

@@ -33,7 +33,7 @@ body {
 	grid-template-rows: repeat(4, 1fr);
 	gap: 5px;
 }
-button {
+button:not(:disabled) {
 	box-sizing: border-box;
 	border: none;
 	box-shadow: 2px 2px 5px #999;
@@ -56,10 +56,10 @@ button:nth-child(6) {
 button:last-child {
 	grid-column: 2 / 4;
 } */
-button:hover {
+button:not(:disabled):hover {
 	background-color: rgba(89, 6, 100, 0.568);
 }
-button:active {
+button:not(:disabled):active {
 	box-shadow: -2px -2px 5px #999;
 	background-color: rgba(6, 100, 37, 0.541);
 }

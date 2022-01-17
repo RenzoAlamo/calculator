@@ -29,7 +29,6 @@ const App = () => {
 		if (buttonText === "←") return setDisplay(display => display.slice(0, (buttons.find(({ text }) => text === buttonText) as typeof buttons[number]).value as number));
 		if (buttonText === "C") return setDisplay((buttons.find(({ text }) => text === buttonText) as typeof buttons[number]).value as string);
 		if (buttonText === "=") {
-			if (split[split.length - 1].slice(-1) === ".") return;
 			if (!/[\+|\−|\×|\÷]/.test(display.slice(-1))) return setDisplay(display => String(eval(display.replace(/[\−|\×|\÷]/g, sign => (buttons.find(({ text }) => text === sign) as typeof buttons[number]).value as string))));
       return;
 		}

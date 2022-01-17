@@ -31,6 +31,7 @@ const App = () => {
 		if (buttonText === "=") {
 			if (split[split.length - 1].slice(-1) === ".") return;
 			if (!/[\+|\−|\×|\÷]/.test(display.slice(-1))) return setDisplay(display => String(eval(display.replace(/[\−|\×|\÷]/g, sign => (buttons.find(({ text }) => text === sign) as typeof buttons[number]).value as string))));
+      return;
 		}
 		if (buttonText === ".") {
 			if (!split[split.length - 1]) return setDisplay(display => display.concat("0", buttonText));

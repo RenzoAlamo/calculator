@@ -51,18 +51,28 @@ const App = () => {
 			if (!regex.numericDigit.test(lastDigit)) return;
 			const trueSigns: (substring: string, ...args: any[]) => string = sign => (buttons.find(({ text }) => text === sign) as typeof buttons[number]).value as string;
 			const falseSigns: (substring: string, ...args: any[]) => string = sign => (buttons.find(({ value }) => value === sign) as typeof buttons[number]).text;
-			return setDisplay(display => String(eval(display.replace(/[\−|\×|\÷]/g, trueSigns))).replace(/[\-]/g, falseSigns)), setResponse(true);
+			const comma: (substring: string, ...args: any[]) => string = comma => (buttons.find(({ value }) => value === comma) as typeof buttons[number]).text;
+			return (
+				setDisplay(display =>
+					String(eval(display.replace(/[\−|\×|\÷]/g, trueSigns)))
+						.replace(/[\-]/g, falseSigns)
+						.replace(/\,/g, ".")
+				),
+				setResponse(true)
+			);
 		},
 		symbols(buttonText: string) {
-      if (response) {
-        setResponse(false);
+			if (response) {
+				setResponse(false);
 				if (!regex.genericNumber.test(display)) return this.reset();
 			} else {
-        const { lastNumber, lastDigit } = lastExpression();
-        // if (["0", ""].some(value => value === lastNumber)) {
+				const split = display.split(/[\+|\−|\×|\÷]/),
+					lastNumber = split[split.length - 1],
+					lastDigit = lastNumber.slice(-1);
+				// if (["0", ""].some(value => value === lastNumber)) {
 				// 	if (buttonText === "−") return setDisplay(display => display.slice(0, -1).concat(buttonText));
 				// }
-        if (buttonText === ".") {
+				if (buttonText === ".") {
 					if (!lastNumber) return setDisplay(display => display.concat("0", buttonText));
 					if (lastNumber.includes(buttonText)) return;
 				}
@@ -71,7 +81,7 @@ const App = () => {
 			setDisplay(display => display.concat(buttonText));
 		},
 		numbers(buttonText: string) {
-      if (response) return setResponse(false), setDisplay(buttonText);
+			if (response) return setResponse(false), setDisplay(buttonText);
 			const { lastNumber, lastDigit } = lastExpression();
 			if (lastNumber === "0") {
 				if (buttonText === "0") return;

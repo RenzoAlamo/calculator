@@ -2,7 +2,7 @@ import { CSSProperties, MouseEventHandler, useState } from "react";
 import "./App.css";
 
 const App = () => {
-	const buttons: { text: string; value: number | string; styles?: CSSProperties }[] = [
+	const buttons: { text: string; value: number | string | [string, string]; styles?: CSSProperties }[] = [
 		{ text: "C", value: "0", styles: { gridColumn: "span 2" } },
 		{ text: "←", value: -1 },
 		{ text: "÷", value: "/" },
@@ -18,18 +18,24 @@ const App = () => {
 		{ text: "2", value: 2 },
 		{ text: "3", value: 3 },
 		{ text: "+", value: "+" },
+		{ text: "+/−", value: ["+", "−"] },
 		{ text: "0", value: 0 },
 		{ text: ".", value: "." },
-		{ text: "=", value: "=", styles: { gridColumn: "span 2" } },
+		{ text: "=", value: "=" },
 	];
 	const initialState = (buttons.find(({ text }) => text === "C") as typeof buttons[number]).value as string;
 	const [display, setDisplay] = useState(initialState);
 	const [response, setResponse] = useState(false);
 
-	const regex = { genericNumber: /^(\-)?\d+(\.\d+)?$/, numericDigit: /\d/ };
+	const regex = {
+		genericNumber: /^(\−)?\d+(\.\d+)?$/,
+		numericDigit: /\d/,
+		signs: /[\+|\−|\×|\÷]/,
+		falseSigns: /[\−|\×|\÷]/g,
+	};
 
 	const lastExpression: () => { lastNumber: string; lastDigit: string } = () => {
-		const split = display.split(/[\+|\−|\×|\÷]/),
+		const split = display.split(regex.signs),
 			lastNumber = split[split.length - 1],
 			lastDigit = lastNumber.slice(-1);
 		return { lastNumber, lastDigit };
@@ -41,112 +47,87 @@ const App = () => {
 		},
 		backspace() {
 			if (response) {
-				setResponse(false);
+				setResponse(!response);
 				if (!regex.genericNumber.test(display)) return this.reset();
 			}
-			display.length === 1 ? this.reset() : setDisplay(display => display.slice(0, (buttons.find(({ text }) => text === "←") as typeof buttons[number]).value as number));
+			if (display.length === 1) return this.reset();
+			const end = (buttons.find(({ text }) => text === "←") as typeof buttons[number]).value as number,
+				split = display
+					.split(/[\+|\−|\×|\÷]/)
+					.map((value, index, array) => (index ? (value ? (array[index - 1] ? value : "−".concat(value)) : index === array.length - 1 ? "−" : value) : value))
+					.filter(value => value),
+				lastNumber = split[split.length - 1];
+			return setDisplay(display.slice(0, lastNumber.length === 2 && lastNumber.includes("−") ? end * 2 : end));
 		},
 		equal() {
-			const { lastDigit } = lastExpression();
-			if (!regex.numericDigit.test(lastDigit)) return;
+			const split = display.split(regex.signs),
+				lastNumber = split[split.length - 1],
+				lastNumber_lastDigit = lastNumber.slice(-1);
+			if (!regex.numericDigit.test(lastNumber_lastDigit)) return;
 			const trueSigns: (substring: string, ...args: any[]) => string = sign => (buttons.find(({ text }) => text === sign) as typeof buttons[number]).value as string;
 			const falseSigns: (substring: string, ...args: any[]) => string = sign => (buttons.find(({ value }) => value === sign) as typeof buttons[number]).text;
-			const comma: (substring: string, ...args: any[]) => string = comma => (buttons.find(({ value }) => value === comma) as typeof buttons[number]).text;
-			return (
-				setDisplay(display =>
-					String(eval(display.replace(/[\−|\×|\÷]/g, trueSigns)))
-						.replace(/[\-]/g, falseSigns)
-						.replace(/\,/g, ".")
-				),
-				setResponse(true)
-			);
+			return setDisplay(String(eval(display.replace(regex.falseSigns, trueSigns))).replace(/[\-]/g, falseSigns)), setResponse(!response);
 		},
-		symbols(buttonText: string) {
+		symbols(buttonText: string, callback?: () => boolean) {
 			if (response) {
-				setResponse(false);
+				setResponse(!response);
+				if (buttonText === "." && display.includes(buttonText)) return setDisplay("0".concat(buttonText));
 				if (!regex.genericNumber.test(display)) return this.reset();
-			} else {
-				const split = display.split(/[\+|\−|\×|\÷]/),
-					lastNumber = split[split.length - 1],
-					lastDigit = lastNumber.slice(-1);
-				// if (["0", ""].some(value => value === lastNumber)) {
-				// 	if (buttonText === "−") return setDisplay(display => display.slice(0, -1).concat(buttonText));
-				// }
-				if (buttonText === ".") {
-					if (!lastNumber) return setDisplay(display => display.concat("0", buttonText));
-					if (lastNumber.includes(buttonText)) return;
-				}
-				if (!regex.numericDigit.test(lastDigit)) return;
+				return setDisplay(display.concat(buttonText));
 			}
-			setDisplay(display => display.concat(buttonText));
+			if (!callback || callback()) {
+				const lastDigit = display.slice(-1);
+				if ([regex.signs, /\./].some(regex => regex.test(lastDigit))) return;
+				setDisplay(display.concat(buttonText));
+			}
+		},
+		changeSign() {
+			if (response) {
+				setResponse(!response);
+				if (!regex.genericNumber.test(display)) return this.reset();
+			}
+			let displaySplit = display.split(regex.signs),
+				lastNumber = displaySplit[displaySplit.length - 1];
+			if (lastNumber) {
+				displaySplit = displaySplit.map((value, index, array) => (index ? (value ? (array[index - 1] ? value : "−".concat(value)) : index === array.length - 1 ? "−" : value) : value)).filter(value => value);
+				lastNumber = displaySplit[displaySplit.length - 1];
+				const index = display.lastIndexOf(lastNumber);
+				const minus = lastNumber.includes("−");
+				const split = [...display];
+				console.log({ lastNumber, minus });
+				split.splice(index, minus ? 1 : 0, minus ? "" : "−");
+				setDisplay(split.join(""));
+			}
+		},
+		point() {
+			const point = ".";
+			this.symbols(point, () => {
+				const split = display.split(regex.signs),
+					lastNumber = split[split.length - 1];
+				if (!lastNumber) return setDisplay(display.concat("0", point)), false;
+				if (lastNumber.includes(point)) return false;
+				return true;
+			});
 		},
 		numbers(buttonText: string) {
-			if (response) return setResponse(false), setDisplay(buttonText);
+			if (response) return setResponse(!response), setDisplay(buttonText);
 			const { lastNumber, lastDigit } = lastExpression();
 			if (lastNumber === "0") {
 				if (buttonText === "0") return;
-				if (regex.numericDigit.test(buttonText)) return setDisplay(display => display.slice(0, -1).concat(buttonText));
+				if (regex.numericDigit.test(buttonText)) return setDisplay(display.slice(0, -1).concat(buttonText));
 			}
-			setDisplay(display => display.concat(buttonText));
+			setDisplay(display.concat(buttonText));
 		},
 	};
-
-	// const reset: VoidFunction = () => {
-	// 	display !== initialState && setDisplay(initialState);
-	// };
-	// const backspace: VoidFunction = () => {
-	// 	display.length === 1 ? reset() : setDisplay(display => display.slice(0, (buttons.find(({ text }) => text === "←") as typeof buttons[number]).value as number));
-	// };
-	// const equal: VoidFunction = () => {
-	// 	const { lastDigit } = lastExpression();
-	// 	if (!regex.numericDigit.test(lastDigit)) return;
-	// 	const trueSigns: (substring: string, ...args: any[]) => string = sign => (buttons.find(({ text }) => text === sign) as typeof buttons[number]).value as string;
-	// 	const falseSigns: (substring: string, ...args: any[]) => string = sign => (buttons.find(({ value }) => value === sign) as typeof buttons[number]).text;
-	// 	return setDisplay(display => String(eval(display.replace(/[\−|\×|\÷]/g, trueSigns))).replace(/[\-]/g, falseSigns)), setResponse(true);
-	// };
-	// const symbols: (buttonText: string) => void = buttonText => {
-	// 	const { lastNumber, lastDigit } = lastExpression();
-	// 	if (response) {
-	// 		setResponse(false);
-	// 		if (!regex.genericNumber.test(display)) return reset();
-	// 	} else {
-	// 		if (["0", ""].some(value => value === lastNumber)) {
-	// 			if (buttonText === "−") return setDisplay(display => display.slice(0, -1).concat(buttonText));
-	// 		}
-	// 		if (!regex.numericDigit.test(lastDigit)) return;
-	// 	}
-	// 	setDisplay(display => display.concat(buttonText));
-	// };
-	// const numbers: (buttonText: string) => void = buttonText => {
-	// 	const { lastNumber, lastDigit } = lastExpression();
-	// 	if (response) return setResponse(false), setDisplay(buttonText);
-	// 	if (lastNumber === "0") {
-	// 		if (buttonText === "0") return;
-	// 		if (regex.numericDigit.test(buttonText)) return setDisplay(display => display.slice(0, -1).concat(buttonText));
-	// 	}
-	// 	setDisplay(display => display.concat(buttonText));
-	// };
 
 	const handler: (buttonText: string) => MouseEventHandler<HTMLButtonElement> = buttonText => _ => {
 		if (buttonText === "←") return actions.backspace();
 		if (buttonText === "C") return actions.reset();
 		if (buttonText === "=") return actions.equal();
+		if (buttonText === ".") return actions.point();
+		if (buttonText === "+/−") return actions.changeSign();
 		if (/\d/.test(buttonText)) return actions.numbers(buttonText);
 		return actions.symbols(buttonText);
-
-		// // If the last parameter of the operation is a sign and the chosen button is also, it will not do any action.
-		// if ([lastDigit, buttonText].every(string => /[\+|\−|\×|\÷]/.test(string))) return;
-
-		// if (buttonText === ".") {
-		// 	if (!lastNumber) return setDisplay(display => display.concat("0", buttonText));
-		// 	if (lastNumber.includes(buttonText)) return;
-		// }
-		// if (lastNumber === "0") {
-		// 	if (buttonText === "0") return;
-		// 	if (!/[\+|\−|\×|\÷\.]/.test(buttonText)) return setDisplay(display => display.slice(0, -1).concat(buttonText));
-		// }
-		// if (lastDigit === "." && /[\+|\−|\×|\÷]/.test(buttonText)) return;
-		// setDisplay(display => display.concat(buttonText));
 	};
 	return (
 		<>
